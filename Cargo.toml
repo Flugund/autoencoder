@@ -1,0 +1,16 @@
+[package]
+name = "autoencoder"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand = "0.5"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+ndarray = { version = "0.12" }
+mnist = { version = "0.5.0", features = ["download"] }
+chrono = "0.4"
+log = "0.4"
+env_logger = "0.9"
