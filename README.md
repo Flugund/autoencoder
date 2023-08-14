@@ -2,6 +2,18 @@
 
 This project aims to solve the MNIST handwritten digit problem defined here: http://yann.lecun.com/exdb/mnist/
 
+### How to run
+
+```
+cargo run -r
+```
+
+### Enviroment variables
+
+```
+PRELOAD_NETWORK="./data/networks/<filename>.json" cargo run -r
+```
+
 ### Example output
 
 The latest run of this program yeilded the following result:
