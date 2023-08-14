@@ -114,12 +114,11 @@ impl Network<'_> {
         test_labels: &Array2<f64>,
         validation_set_size: u32,
         shape: usize,
-    ) -> Vec<Vec<f64>> {
+    ) -> f64 {
         let mut rights = 0.0;
         let mut wrongs = 0.0;
 
         let mut failed = vec![0.0; 10];
-        let mut results: Vec<Vec<f64>> = Vec::new();
 
         for i in 0..(validation_set_size as usize) {
             let image = test_data
@@ -133,8 +132,6 @@ impl Network<'_> {
 
             let result = self.feed_forward(image);
 
-            results.push(result.clone());
-
             let result_number = convert_result_vec_to_number(result);
             let label_number = convert_result_vec_to_number(label);
 
@@ -147,15 +144,24 @@ impl Network<'_> {
             }
         }
 
+        let right_percentage = 100.0 * (rights / (wrongs + rights));
+
         log::info!(
             "Right: {:?}, Wrong: {:?}, Percent: {:?}%, Failed: {:?}",
             rights,
             wrongs,
-            100.0 * (rights / (wrongs + rights)),
+            right_percentage,
             failed
         );
 
-        results
+        right_percentage
+    }
+
+    pub fn model(&self) -> String {
+        let network_model_str: Vec<String> = self.layers.iter().map(|n| n.to_string()).collect();
+        let network_model_concatenated = network_model_str.join("-");
+
+        network_model_concatenated
     }
 
     pub fn save(&self, file: String) {

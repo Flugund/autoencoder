@@ -1,3 +1,5 @@
+use std::env;
+
 use activations::SIGMOID;
 use network::Network;
 
@@ -22,9 +24,12 @@ fn main() {
     let test_set_size: u32 = 10_000;
 
     let image_size: usize = 784;
-    let network_model: Vec<usize> = vec![image_size, 800, 800, 10];
+    let layers: Vec<usize> = vec![image_size, 800, 800, 10];
+    let learning_rate = 0.001;
 
-    let epochs = 10;
+    let epochs = 20;
+
+    let preload_network = env::var("PRELOAD_NETWORK").unwrap_or(String::from(""));
 
     let DataSet {
         train_inputs,
@@ -39,7 +44,13 @@ fn main() {
 
     log::info!("Create Network...");
 
-    let mut network = Network::new(network_model.clone(), 0.01, SIGMOID);
+    let mut network = Network::new(layers, learning_rate, SIGMOID);
+
+    if preload_network.len() != 0 {
+        log::info!("Preload Network: {}...", preload_network);
+
+        network.load(preload_network);
+    }
 
     log::info!("Start training with {} images", train_inputs.len());
 
@@ -50,7 +61,12 @@ fn main() {
 
         log::info!("Network trained with validation data");
 
-        network.validate(&val_data, &val_labels, val_set_size, image_size);
+        let right_percentage = network.validate(&val_data, &val_labels, val_set_size, image_size);
+
+        if right_percentage == 100.0 {
+            log::info!("Right percentage of 100% reached, will stop training");
+            break;
+        }
     }
 
     for i in 1..=epochs {
@@ -65,14 +81,12 @@ fn main() {
 
     log::info!("Running final test...");
 
-    network.validate(&test_data, &test_labels, test_set_size, image_size);
-
-    let network_model_str: Vec<String> = network_model.iter().map(|n| n.to_string()).collect();
-    let network_model_concatenated = network_model_str.join("-");
+    let right_percentage = network.validate(&test_data, &test_labels, test_set_size, image_size);
 
     network.save(format!(
-        "./data/networks/{}-{}.flu",
-        network_model_concatenated,
-        Local::now()
+        "./data/networks/{}-{}-{}.json",
+        network.model(),
+        Local::now().format("%Y-%m-%dT%H:%M:%S"),
+        right_percentage
     ));
 }
