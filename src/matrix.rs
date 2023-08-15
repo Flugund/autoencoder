@@ -1,5 +1,7 @@
 /**
- *  This code is inspired by the https://www.youtube.com/watch?v=FI-8L-hobDY&t=10s video by MathleteDev
+ * This code is inspired by the https://www.youtube.com/watch?v=FI-8L-hobDY&t=10s video by MathleteDev
+ *
+ * https://github.com/mathletedev/rust-ml/
  **/
 use rand::{thread_rng, Rng};
 
