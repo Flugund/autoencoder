@@ -1,3 +1,6 @@
+/**
+ *  This code is inspired by the https://www.youtube.com/watch?v=FI-8L-hobDY&t=10s video by MathleteDev
+ **/
 use std::{
     fs::File,
     io::{self, Read, Write},
