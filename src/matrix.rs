@@ -1,5 +1,4 @@
 use rand::{thread_rng, Rng};
-use std::fmt::{Debug, Formatter, Result};
 
 #[derive(Clone)]
 pub struct Matrix {
@@ -127,24 +126,5 @@ impl Matrix {
         }
 
         res
-    }
-}
-
-impl Debug for Matrix {
-    fn fmt(&self, f: &mut Formatter) -> Result {
-        write!(
-            f,
-            "Matrix {{\n{}\n}}",
-            (&self.data)
-                .into_iter()
-                .map(|row| "  ".to_string()
-                    + &row
-                        .into_iter()
-                        .map(|value| value.to_string())
-                        .collect::<Vec<String>>()
-                        .join(" "))
-                .collect::<Vec<String>>()
-                .join("\n")
-        )
     }
 }
