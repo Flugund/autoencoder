@@ -8,18 +8,11 @@ pub struct DataSet {
     pub val_labels: Array2<f64>,
     pub train_inputs: Vec<Vec<f64>>,
     pub train_targets: Vec<Vec<f64>>,
-    pub val_inputs: Vec<Vec<f64>>,
-    pub val_targets: Vec<Vec<f64>>,
     pub test_data: ArrayBase<ndarray::OwnedRepr<f64>, Dim<[usize; 3]>>,
     pub test_labels: Array2<f64>,
 }
 
-pub fn mnist_data_set(
-    training_set_size: u32,
-    val_set_size: u32,
-    test_set_size: u32,
-    image_size: usize,
-) -> DataSet {
+pub fn mnist_data_set(training_set_size: u32, val_set_size: u32, test_set_size: u32) -> DataSet {
     // Deconstruct the returned Mnist struct.
     let Mnist {
         trn_img,
@@ -80,30 +73,11 @@ pub fn mnist_data_set(
         train_targets.push(label);
     }
 
-    let mut val_inputs: Vec<Vec<f64>> = Vec::new();
-    let mut val_targets: Vec<Vec<f64>> = Vec::new();
-
-    for i in 0..(val_set_size as usize) {
-        let image = val_data
-            .slice(s![i, .., ..])
-            .to_owned()
-            .into_shape((image_size,))
-            .unwrap()
-            .to_vec();
-
-        let label = convert_number_to_target_vec(val_labels.slice(s![i, ..]).to_vec()[0] as usize);
-
-        val_inputs.push(image);
-        val_targets.push(label);
-    }
-
     DataSet {
         val_data,
         val_labels,
         train_inputs,
         train_targets,
-        val_inputs,
-        val_targets,
         test_data,
         test_labels,
     }

@@ -17,13 +17,13 @@ use super::{
     utils::convert_result_vec_to_number,
 };
 
-pub struct Network<'a> {
+pub struct Network {
     layers: Vec<usize>,
     weights: Vec<Matrix>,
     biases: Vec<Matrix>,
     data: Vec<Matrix>,
-    learning_rate: f64,
-    activation: Activation<'a>,
+    scale_by_learning_rate: fn(f64) -> f64,
+    activation: Activation,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -32,12 +32,12 @@ struct SaveData {
     biases: Vec<Vec<Vec<f64>>>,
 }
 
-impl Network<'_> {
+impl Network {
     pub fn new<'a>(
         layers: Vec<usize>,
-        learning_rate: f64,
-        activation: Activation<'a>,
-    ) -> Network<'a> {
+        scale_by_learning_rate: fn(f64) -> f64,
+        activation: Activation,
+    ) -> Network {
         let mut weights = vec![];
         let mut biases = vec![];
 
@@ -51,7 +51,7 @@ impl Network<'_> {
             weights,
             biases,
             data: vec![],
-            learning_rate,
+            scale_by_learning_rate,
             activation,
         }
     }
@@ -87,7 +87,7 @@ impl Network<'_> {
         for i in (0..self.layers.len() - 1).rev() {
             gradients = gradients
                 .dot_multiply(&errors)
-                .map(&|x| x * self.learning_rate);
+                .map(self.scale_by_learning_rate);
 
             self.weights[i] = self.weights[i].add(&gradients.multiply(&self.data[i].transpose()));
             self.biases[i] = self.biases[i].add(&gradients);

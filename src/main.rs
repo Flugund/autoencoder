@@ -25,26 +25,27 @@ fn main() {
 
     let image_size: usize = 784;
     let layers: Vec<usize> = vec![image_size, 800, 800, 10];
-    let learning_rate = 0.001;
 
-    let epochs = 20;
+    fn scale_by_learning_rate(x: f64) -> f64 {
+        x * 0.002 // example static learning rate
+    }
+
+    let epochs = 10;
 
     let preload_network = env::var("PRELOAD_NETWORK").unwrap_or(String::from(""));
 
     let DataSet {
         train_inputs,
         train_targets,
-        val_inputs,
-        val_targets,
         test_data,
         test_labels,
         val_data,
         val_labels,
-    } = mnist_data_set(training_set_size, val_set_size, test_set_size, image_size);
+    } = mnist_data_set(training_set_size, val_set_size, test_set_size);
 
     log::info!("Create Network...");
 
-    let mut network = Network::new(layers, learning_rate, SIGMOID);
+    let mut network = Network::new(layers, scale_by_learning_rate, SIGMOID);
 
     if preload_network.len() != 0 {
         log::info!("Preload Network: {}...", preload_network);
@@ -55,11 +56,13 @@ fn main() {
     log::info!("Start training with {} images", train_inputs.len());
 
     for i in 1..=epochs {
-        log::info!("[Validation] Epoch {} of {}", i, epochs);
+        use std::time::Instant;
+        let now = Instant::now();
+        log::info!("[Training] Epoch {} of {}", i, epochs);
 
-        network.train(&val_inputs, &val_targets);
+        network.train(&train_inputs, &train_targets);
 
-        log::info!("Network trained with validation data");
+        log::info!("Network trained with training data");
 
         let right_percentage = network.validate(&val_data, &val_labels, val_set_size, image_size);
 
@@ -67,16 +70,18 @@ fn main() {
             log::info!("Right percentage of 100% reached, will stop training");
             break;
         }
-    }
 
-    for i in 1..=epochs {
-        log::info!("[Training] Epoch {} of {}", i, epochs);
+        log::info!("Validate using final test data set");
 
-        network.train(&train_inputs, &train_targets);
+        let right_percentage_test =
+            network.validate(&test_data, &test_labels, test_set_size, image_size);
 
-        log::info!("Network trained with training data");
-
-        network.validate(&val_data, &val_labels, val_set_size, image_size);
+        if right_percentage_test == 100.0 {
+            log::info!("Right percentage of 100% reached, will stop training");
+            break;
+        }
+        let elapsed = now.elapsed();
+        log::info!("Epoch took: {:.2?}", elapsed);
     }
 
     log::info!("Running final test...");
