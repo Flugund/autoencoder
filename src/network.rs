@@ -8,7 +8,9 @@ use std::{
     io::{self, Read, Write},
 };
 
+use autometrics::autometrics;
 use ndarray::{s, Array2, ArrayBase, Dim};
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, json};
 
@@ -32,6 +34,7 @@ struct SaveData {
     biases: Vec<Vec<Vec<f64>>>,
 }
 
+#[autometrics]
 impl Network {
     pub fn new<'a>(
         layers: Vec<usize>,
@@ -98,9 +101,17 @@ impl Network {
     }
 
     pub fn train(&mut self, inputs: &Vec<Vec<f64>>, targets: &Vec<Vec<f64>>) {
-        for j in 0..inputs.len() {
+        let input_length = inputs.len();
+        print!("Progress: ");
+        for j in 0..input_length {
             if j == 0 || j % 500 == 0 {
-                print!(".");
+                let progress_pct = 100 * j / input_length;
+                if progress_pct % 10 == 0 {
+                    print!("{}%", progress_pct);
+                } else {
+                    print!(".");
+                }
+
                 io::stdout().flush().unwrap();
             }
 
@@ -163,7 +174,8 @@ impl Network {
     }
 
     pub fn model(&self) -> String {
-        let network_model_str: Vec<String> = self.layers.iter().map(|n| n.to_string()).collect();
+        let network_model_str: Vec<String> =
+            self.layers.par_iter().map(|n| n.to_string()).collect();
         let network_model_concatenated = network_model_str.join("-");
 
         network_model_concatenated
@@ -199,5 +211,41 @@ impl Network {
 
         self.weights = weights;
         self.biases = biases;
+    }
+
+    pub fn run_training_epoch(
+        &mut self,
+        train_inputs: &Vec<Vec<f64>>,
+        train_targets: &Vec<Vec<f64>>,
+        test_data: &ArrayBase<ndarray::OwnedRepr<f64>, Dim<[usize; 3]>>,
+        test_labels: &Array2<f64>,
+        val_data: &ArrayBase<ndarray::OwnedRepr<f64>, Dim<[usize; 3]>>,
+        val_labels: &Array2<f64>,
+        image_size: usize,
+        val_set_size: u32,
+        test_set_size: u32,
+    ) -> bool {
+        self.train(&train_inputs, &train_targets);
+
+        log::info!("Network trained with training data");
+
+        let right_percentage = self.validate(&val_data, &val_labels, val_set_size, image_size);
+
+        if right_percentage == 100.0 {
+            log::info!("Right percentage of 100% reached, will stop training");
+            return true;
+        }
+
+        log::info!("Validate using final test data set");
+
+        let right_percentage_test =
+            self.validate(&test_data, &test_labels, test_set_size, image_size);
+
+        if right_percentage_test == 100.0 {
+            log::info!("Right percentage of 100% reached, will stop training");
+            return true;
+        }
+
+        return false;
     }
 }

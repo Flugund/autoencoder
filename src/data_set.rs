@@ -1,3 +1,4 @@
+use autometrics::autometrics;
 use mnist::*;
 use ndarray::{s, Array2, Array3, ArrayBase, Dim};
 
@@ -12,6 +13,7 @@ pub struct DataSet {
     pub test_labels: Array2<f64>,
 }
 
+#[autometrics]
 pub fn mnist_data_set(training_set_size: u32, val_set_size: u32, test_set_size: u32) -> DataSet {
     // Deconstruct the returned Mnist struct.
     let Mnist {

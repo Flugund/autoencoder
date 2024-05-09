@@ -14,5 +14,7 @@ mnist = { version = "0.5.0", features = ["download"] }
 chrono = "0.4"
 log = "0.4"
 env_logger = "0.9"
-faer = "0.18.2"
 rayon = "1.5"
+autometrics = { version = "1.0.1", features = ["prometheus-exporter"] }
+tokio = { version = "1.37.0", features = ["net", "rt-multi-thread"] }
+axum = "0.7.5"

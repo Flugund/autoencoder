@@ -8,6 +8,14 @@ This project aims to solve the MNIST handwritten digit problem defined here: htt
 cargo run -r
 ```
 
+### How to run with auto metrics
+
+```
+Install `brew install autometrics-dev/tap/am` if you don't have it.
+
+Run: `am start :3000` to start the autometrics CLI tool.
+```
+
 ### Enviroment variables
 
 ```

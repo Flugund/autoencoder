@@ -1,3 +1,4 @@
+use autometrics::autometrics;
 use rand::distributions::{Distribution, Uniform};
 /**
  * This code is inspired by the https://www.youtube.com/watch?v=FI-8L-hobDY&t=10s video by MathleteDev
@@ -13,6 +14,7 @@ pub struct Matrix {
     pub data: Vec<Vec<f64>>,
 }
 
+#[autometrics]
 impl Matrix {
     pub fn zeros(rows: usize, cols: usize) -> Matrix {
         Matrix {

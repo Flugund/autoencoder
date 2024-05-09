@@ -1,24 +1,45 @@
 use std::env;
 
 use activations::SIGMOID;
+use autometrics::autometrics;
 use network::Network;
+use std::time::Instant;
 
 use chrono::Local;
 
 use crate::data_set::mnist_data_set;
 use crate::data_set::DataSet;
 use crate::logger::init_logger;
+use metrics_logger::*;
 
 pub mod activations;
 pub mod data_set;
 pub mod logger;
 pub mod matrix;
+pub mod metrics_logger;
 pub mod network;
 pub mod utils;
 
-fn main() {
+#[tokio::main]
+pub async fn main() {
     init_logger();
+    tokio::spawn(init_metrics());
 
+    let mut preload_network = env::var("PRELOAD_NETWORK").unwrap_or(String::from(""));
+
+    loop {
+        let network_process = tokio::spawn(init_network(preload_network));
+
+        let result = network_process.await;
+
+        let file_path = result.ok();
+
+        preload_network = file_path.expect("Should return a file path")
+    }
+}
+
+#[autometrics]
+async fn init_network(preload_network: String) -> String {
     let training_set_size: u32 = 50_000;
     let val_set_size: u32 = 10_000;
     let test_set_size: u32 = 10_000;
@@ -27,12 +48,10 @@ fn main() {
     let layers: Vec<usize> = vec![image_size, 800, 800, 10];
 
     fn scale_by_learning_rate(x: f64) -> f64 {
-        x * 0.002 // example static learning rate
+        x * 0.001
     }
 
     let epochs = 10;
-
-    let preload_network = env::var("PRELOAD_NETWORK").unwrap_or(String::from(""));
 
     let DataSet {
         train_inputs,
@@ -56,30 +75,26 @@ fn main() {
     log::info!("Start training with {} images", train_inputs.len());
 
     for i in 1..=epochs {
-        use std::time::Instant;
         let now = Instant::now();
         log::info!("[Training] Epoch {} of {}", i, epochs);
 
-        network.train(&train_inputs, &train_targets);
+        let success = network.run_training_epoch(
+            &train_inputs,
+            &train_targets,
+            &test_data,
+            &test_labels,
+            &val_data,
+            &val_labels,
+            image_size,
+            val_set_size,
+            test_set_size,
+        );
 
-        log::info!("Network trained with training data");
-
-        let right_percentage = network.validate(&val_data, &val_labels, val_set_size, image_size);
-
-        if right_percentage == 100.0 {
+        if success {
             log::info!("Right percentage of 100% reached, will stop training");
             break;
         }
 
-        log::info!("Validate using final test data set");
-
-        let right_percentage_test =
-            network.validate(&test_data, &test_labels, test_set_size, image_size);
-
-        if right_percentage_test == 100.0 {
-            log::info!("Right percentage of 100% reached, will stop training");
-            break;
-        }
         let elapsed = now.elapsed();
         log::info!("Epoch took: {:.2?}", elapsed);
     }
@@ -88,10 +103,18 @@ fn main() {
 
     let right_percentage = network.validate(&test_data, &test_labels, test_set_size, image_size);
 
-    network.save(format!(
+    let file_path = format!(
         "./data/networks/{}-{}-{}.json",
         network.model(),
         Local::now().format("%Y-%m-%dT%H:%M:%S"),
         right_percentage
-    ));
+    );
+
+    log::info!("Saving model at path {}", file_path);
+
+    let file_path_copy = file_path.clone();
+
+    network.save(file_path);
+
+    file_path_copy
 }
