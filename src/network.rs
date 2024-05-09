@@ -276,3 +276,65 @@ impl Network {
         return false;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::activations::SIGMOID;
+
+    use super::*;
+
+    #[test]
+    fn test_network_initialization() {
+        let layers = vec![3, 5, 2];
+        let network = Network::new(layers.clone(), |x| x * 0.1, SIGMOID);
+
+        // Check if all layers except the input have weights and biases initialized
+        assert_eq!(network.weights.len(), 2); // Since there are 2 connections between 3 layers
+        assert_eq!(network.biases.len(), 2);
+
+        // Check dimensions of weights and biases
+        assert_eq!(network.weights[0].rows, 5);
+        assert_eq!(network.weights[0].cols, 3);
+        assert_eq!(network.biases[0].rows, 5);
+        assert_eq!(network.biases[0].cols, 1);
+
+        assert_eq!(network.weights[1].rows, 2);
+        assert_eq!(network.weights[1].cols, 5);
+        assert_eq!(network.biases[1].rows, 2);
+        assert_eq!(network.biases[1].cols, 1);
+    }
+
+    #[test]
+    fn test_feed_forward() {
+        let layers = vec![2, 3, 1];
+        let mut network = Network::new(layers, |x| x * 0.1, SIGMOID);
+
+        // Example input
+        let inputs = vec![0.5, -0.1];
+        let output = network.feed_forward(inputs);
+
+        // Ensure the output is of the correct dimension
+        assert_eq!(output.len(), 1);
+    }
+
+    #[test]
+    fn test_back_propagation() {
+        let layers = vec![2, 3, 1];
+        let mut network = Network::new(layers, |x| x * 0.1, SIGMOID);
+
+        let inputs = vec![0.5, -0.1];
+        let targets = vec![1.0];
+
+        // Capture initial weights and biases
+        let initial_weights = network.weights[0].clone();
+        let initial_biases = network.biases[0].clone();
+
+        // Perform back propagation
+        let outputs = network.feed_forward(inputs);
+        network.back_propogate(outputs, targets);
+
+        // Check if weights and biases have changed
+        assert_ne!(network.weights[0].data, initial_weights.data);
+        assert_ne!(network.biases[0].data, initial_biases.data);
+    }
+}
