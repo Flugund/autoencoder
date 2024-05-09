@@ -45,7 +45,7 @@ async fn init_network(preload_network: String) -> String {
     let test_set_size: u32 = 10_000;
 
     let image_size: usize = 784;
-    let layers: Vec<usize> = vec![image_size, 800, 800, 10];
+    let layers: Vec<usize> = vec![image_size, 512, 512, 512, 10];
 
     fn scale_by_learning_rate(x: f64) -> f64 {
         x * 0.001
@@ -62,7 +62,7 @@ async fn init_network(preload_network: String) -> String {
         val_labels,
     } = mnist_data_set(training_set_size, val_set_size, test_set_size);
 
-    log::info!("Create Network...");
+    log::info!("Create Network... {:?}", layers);
 
     let mut network = Network::new(layers, scale_by_learning_rate, SIGMOID);
 

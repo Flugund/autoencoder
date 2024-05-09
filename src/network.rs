@@ -5,14 +5,17 @@
  **/
 use std::{
     fs::File,
-    io::{self, Read, Write},
+    io::{Read, Write},
 };
 
 use autometrics::autometrics;
 use ndarray::{s, Array2, ArrayBase, Dim};
+use rand::prelude::SliceRandom;
+use rand::thread_rng;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, json};
+use spinners::{Spinner, Spinners};
 
 use super::{
     activations::Activation, matrix::Matrix, utils::convert_number_to_target_vec,
@@ -100,27 +103,34 @@ impl Network {
         }
     }
 
-    pub fn train(&mut self, inputs: &Vec<Vec<f64>>, targets: &Vec<Vec<f64>>) {
+    pub fn train(&mut self, inputs: &Vec<&Vec<f64>>, targets: &Vec<&Vec<f64>>) {
         let input_length = inputs.len();
-        print!("Progress: ");
+        let mut last_progress_pct = 0;
+        let mut sp = Spinner::new(
+            Spinners::Dots9,
+            format!("Training with {} images... [0%]", input_length).into(),
+        );
         for j in 0..input_length {
-            if j == 0 || j % 500 == 0 {
-                let progress_pct = 100 * j / input_length;
-                if progress_pct % 10 == 0 {
-                    print!("{}%", progress_pct);
-                } else {
-                    print!(".");
-                }
+            let progress_pct = 100 * j / input_length;
 
-                io::stdout().flush().unwrap();
+            if last_progress_pct != progress_pct {
+                last_progress_pct = progress_pct;
+                sp.stop();
+                sp = Spinner::new(
+                    Spinners::Dots9,
+                    format!(
+                        "Training with {} images... [{}%]",
+                        input_length, progress_pct
+                    )
+                    .into(),
+                );
             }
 
             let outputs = self.feed_forward(inputs[j].clone());
 
             self.back_propogate(outputs, targets[j].clone());
         }
-        println!("");
-
+        sp.stop_with_message("Training done!".into());
         log::info!("Completed training")
     }
 
@@ -225,7 +235,24 @@ impl Network {
         val_set_size: u32,
         test_set_size: u32,
     ) -> bool {
-        self.train(&train_inputs, &train_targets);
+        // Clone data to mutable variables for shuffling
+        let mut rng = thread_rng();
+        let inputs_shuffled = train_inputs.clone();
+        let targets_shuffled = train_targets.clone();
+
+        // Shuffle inputs and targets in unison
+        let mut combined: Vec<(&Vec<f64>, &Vec<f64>)> = inputs_shuffled
+            .iter()
+            .zip(targets_shuffled.iter())
+            .collect();
+        combined.shuffle(&mut rng);
+
+        // Unzip them back into separate vectors
+        let (inputs_shuffled, targets_shuffled): (Vec<_>, Vec<_>) =
+            combined.iter().cloned().unzip();
+
+        // Now train with the shuffled data
+        self.train(&inputs_shuffled, &targets_shuffled);
 
         log::info!("Network trained with training data");
 
